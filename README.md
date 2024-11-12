@@ -1,4 +1,4 @@
-# ENAC-IT4R Python Authentication/Authorization Library
+# ENAC-IT4R Python Auth Library
 
 A Python library for handling authentication/authorization in the EPFL ENAC IT infrastructure:
  
