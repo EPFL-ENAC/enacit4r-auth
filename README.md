@@ -26,16 +26,12 @@ kc_service = KeycloakService(config.KEYCLOAK_URL, config.KEYCLOAK_REALM,
 
 # Example usage with FastAPI
 @router.delete("/entity/{id}",
-               status_code=204,
-               description="Delete an entity, requires administrator role",
-               )
+               description="Delete an entity, requires administrator role",)
 async def delete_entity(id: str, user: User = Depends(kc_service.require_admin())):
     pass
 
 @router.put("/entity/{id}",
-               status_code=204,
-               description="Update an entity, requires admin or editor role",
-               )
+            description="Update an entity, requires admin or editor role",)
 async def update_entity(id: str, user: User = Depends(kc_service.require_any_role(["myapp-admin-role", "myapp-editor-role"]))):
     pass
 
