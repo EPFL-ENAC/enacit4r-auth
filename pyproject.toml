@@ -12,6 +12,12 @@ python-keycloak = "^4.7.0"
 fastapi = "^0.115.4"
 pydantic = "^2.9.2"
 
+[tool.poetry.group.test.dependencies]
+pytest = "^8.3.3"
+
+
+[tool.poetry.group.dev.dependencies]
+pytest-asyncio = "^0.24.0"
 
 [build-system]
 requires = ["poetry-core"]

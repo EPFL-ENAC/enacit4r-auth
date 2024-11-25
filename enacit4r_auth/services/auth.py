@@ -65,14 +65,44 @@ class KeycloakService:
                 )
         return get_user_info_impl
 
+    
+    def require_role(self, role: str):
+        """Require that the user has a specific role to perform an operation
+        """
+        async def require_role_impl(user: User = Depends(self.get_user_info())) -> User:
+            if role not in user.realm_roles:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You are not authorised to perform this operation",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            return user
+        return require_role_impl
+
+
+    def require_any_role(self, roles: list[str]):
+        """Require that the user has at least one of the roles to perform an operation
+        """
+        async def require_any_role_impl(user: User = Depends(self.get_user_info())) -> User:
+            if not any(role in user.realm_roles for role in roles):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You are not authorised to perform this operation",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            return user
+        return require_any_role_impl
+
+
     def require_admin(self):
         """Require that the user has the admin role to perform an operation
         """
-        async def require_admin_impl(user: User = Depends(self.get_user_info())):
+        async def require_admin_impl(user: User = Depends(self.get_user_info())) -> User:
             if self.admin_role not in user.realm_roles:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="You are not authorised to perform this operation",
                     headers={"WWW-Authenticate": "Bearer"},
                 )
+            return user
         return require_admin_impl

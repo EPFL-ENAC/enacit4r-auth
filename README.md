@@ -19,17 +19,25 @@ Note: `someref` should be replaced by the commit hash, tag or branch name you wa
 ```python
 from enacit4r_auth.services.keycloak import KeycloakService, User
 
+# Users from a Keycloak realm are assigned application specific roles
 kc_service = KeycloakService(config.KEYCLOAK_URL, config.KEYCLOAK_REALM, 
     config.KEYCLOAK_CLIENT_ID, config.KEYCLOAK_CLIENT_SECRET, "myapp-admin-role")
 
 
 # Example usage with FastAPI
-@router.delete("/{file_path:path}",
+@router.delete("/entity/{id}",
                status_code=204,
-               description="Delete asset present in S3, requires administrator role",
+               description="Delete an entity, requires administrator role",
                )
-async def delete_file(file_path: str, user: User = Depends(kc_service.require_admin())):
-    # delete path if it contains /tmp/
+async def delete_entity(id: str, user: User = Depends(kc_service.require_admin())):
     pass
+
+@router.put("/entity/{id}",
+               status_code=204,
+               description="Update an entity, requires admin or editor role",
+               )
+async def update_entity(id: str, user: User = Depends(kc_service.require_any_role(["myapp-admin-role", "myapp-editor-role"]))):
+    pass
+
 
 ```
