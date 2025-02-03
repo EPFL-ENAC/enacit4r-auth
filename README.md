@@ -3,6 +3,7 @@
 A Python library for handling authentication/authorization in the EPFL ENAC IT infrastructure:
  
  * `KeycloakService`: a service to authenticate users with Keycloak and check their roles.
+ * `KeycloakAdminService`: a service to manage users and roles in Keycloak for a specific application.
 
 ## Usage
 
@@ -17,7 +18,7 @@ Note: `someref` should be replaced by the commit hash, tag or branch name you wa
 ### KeycloakService
   
 ```python
-from enacit4r_auth.services.keycloak import KeycloakService, User
+from enacit4r_auth.services.auth import KeycloakService, User
 
 # Users from a Keycloak realm are assigned application specific roles
 kc_service = KeycloakService(config.KEYCLOAK_URL, config.KEYCLOAK_REALM, 
@@ -37,3 +38,18 @@ async def update_entity(id: str, user: User = Depends(kc_service.require_any_rol
 
 
 ```
+
+### KeycloakAdminService
+
+The client ID and secret are the credentials of a Keycloak client with the "Service accounts roles":
+* `realm-management` manage-users
+* `realm-management` query-users	
+* `realm-management` view-users
+* `realm-management` view-realm	
+
+```python
+from enacit4r_auth.services.admin import KeycloakAdminService, AppUser
+
+
+kc_admin_service = KeycloakAdminService(config.KEYCLOAK_URL, config.KEYCLOAK_REALM,
+                                        config.KEYCLOAK_API_ID, config.KEYCLOAK_API_SECRET, "my-app-user-role")
