@@ -105,8 +105,15 @@ class KeycloakAdminService:
             # ensure app user role is always assigned
             if self.app_user_role not in user.roles:
                 user.roles.append(self.app_user_role)
-            roles = [self._get_role(role) for role in user.roles]
-            self.kc_admin.assign_realm_roles(user.id, roles)
+            current_roles = self.kc_admin.get_realm_roles_of_user(user.id)
+            # delete roles that are not in the new list
+            roles_to_delete = [role for role in current_roles if role["name"] not in user.roles]
+            if len(roles_to_delete) > 0:
+                self.kc_admin.delete_realm_roles_of_user(user.id, roles_to_delete)
+            # assign roles that are in the new list
+            current_role_names = [role["name"] for role in current_roles]
+            roles_to_add = [self._get_role(role) for role in user.roles if role not in current_role_names]
+            self.kc_admin.assign_realm_roles(user.id, roles_to_add)
         return await self.get_user(user.id)
 
     async def update_user_password(self, id: str, password: str) -> None:
