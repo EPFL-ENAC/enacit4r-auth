@@ -17,6 +17,14 @@ class KeycloakService:
                 "/protocol/openid-connect/token"
             ),
         )
+        self.oauth2_scheme_or_anonymous = OAuth2AuthorizationCodeBearer(
+            authorizationUrl=f"{url}",
+            tokenUrl=(
+                f"{url}/realms/{realm}"
+                "/protocol/openid-connect/token"
+            ),
+            auto_error=False,  # Allow anonymous access
+        )
         self.keycloak_openid = KeycloakOpenID(
             server_url=url,
             client_id=client_id,
@@ -28,8 +36,10 @@ class KeycloakService:
 
     def get_payload(self, required: bool = True):
         """Get the payload/token from keycloak"""
-        async def get_payload_impl(token: str = Security(self.oauth2_scheme)) -> dict:
+        async def get_payload_impl(token: str = Security(self.oauth2_scheme if required else self.oauth2_scheme_or_anonymous)) -> dict:
             try:
+                if not token and not required:
+                    return {}
                 return self.keycloak_openid.decode_token(
                     token,
                 )
