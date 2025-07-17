@@ -26,7 +26,7 @@ class KeycloakService:
         )
         self.admin_role = admin_role
 
-    def get_payload(self):
+    def get_payload(self, required: bool = True):
         """Get the payload/token from keycloak"""
         async def get_payload_impl(token: str = Security(self.oauth2_scheme)) -> dict:
             try:
@@ -34,17 +34,20 @@ class KeycloakService:
                     token,
                 )
             except Exception as e:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail=str(e),  # "Invalid authentication credentials",
-                    headers={"WWW-Authenticate": "Bearer"},
-                )
+                if required:
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail=str(e),  # "Invalid authentication credentials",
+                        headers={"WWW-Authenticate": "Bearer"},
+                    )
+                else:
+                    return {}
         return get_payload_impl
 
     def get_user_info(self, required: bool = True):
         """Get user info from the payload
         """
-        async def get_user_info_impl(payload: dict = Depends(self.get_payload())) -> User:
+        async def get_user_info_impl(payload: dict = Depends(self.get_payload(required))) -> User:
             try:
                 return User(
                     id=payload.get("sub"),
