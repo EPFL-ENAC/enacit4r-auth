@@ -36,10 +36,10 @@ class KeycloakService:
 
     def get_payload(self, required: bool = True):
         """Get the payload/token from keycloak"""
-        async def get_payload_impl(token: str = Security(self.oauth2_scheme if required else self.oauth2_scheme_or_anonymous)) -> dict:
+        async def get_payload_impl(token: str = Security(self.oauth2_scheme if required else self.oauth2_scheme_or_anonymous)) -> dict | None:
             try:
                 if not token and not required:
-                    return {}
+                    return None
                 return self.keycloak_openid.decode_token(
                     token,
                 )
@@ -51,7 +51,7 @@ class KeycloakService:
                         headers={"WWW-Authenticate": "Bearer"},
                     )
                 else:
-                    return {}
+                    return None
         return get_payload_impl
 
     def get_user_info(self, required: bool = True):
@@ -69,7 +69,7 @@ class KeycloakService:
                         "realm_access", {}).get("roles", []),
                     client_roles=payload.get(
                         "realm_access", {}).get("roles", []),
-                )
+                ) if payload else None
             except Exception as e:
                 if required:
                     raise HTTPException(
@@ -78,15 +78,7 @@ class KeycloakService:
                         headers={"WWW-Authenticate": "Bearer"},
                     )
                 else:
-                    return User(
-                        id=None,
-                        username=None,
-                        email=None,
-                        first_name=None,
-                        last_name=None,
-                        realm_roles=[],
-                        client_roles=[],
-                    )
+                    return None
         return get_user_info_impl
 
     
