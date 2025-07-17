@@ -41,7 +41,7 @@ class KeycloakService:
                 )
         return get_payload_impl
 
-    def get_user_info(self):
+    def get_user_info(self, required: bool = True):
         """Get user info from the payload
         """
         async def get_user_info_impl(payload: dict = Depends(self.get_payload())) -> User:
@@ -58,11 +58,22 @@ class KeycloakService:
                         "realm_access", {}).get("roles", []),
                 )
             except Exception as e:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=str(e),  # "Invalid authentication credentials",
-                    headers={"WWW-Authenticate": "Bearer"},
-                )
+                if required:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=str(e),  # "Invalid authentication credentials",
+                        headers={"WWW-Authenticate": "Bearer"},
+                    )
+                else:
+                    return User(
+                        id=None,
+                        username=None,
+                        email=None,
+                        first_name=None,
+                        last_name=None,
+                        realm_roles=[],
+                        client_roles=[],
+                    )
         return get_user_info_impl
 
     
