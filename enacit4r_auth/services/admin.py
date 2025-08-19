@@ -21,7 +21,18 @@ class KeycloakAdminService:
         Returns:
             AppUserResult: The users found
         """
-        users = self.kc_admin.get_realm_role_members(self.app_user_role)
+        return await self.get_users_for_role(self.app_user_role)
+
+    async def get_users_for_role(self, role: str) -> List[AppUser]:
+        """Get the users of the application for a specific role
+
+        Args:
+            role (str): The role to filter users by
+        
+        Returns:
+            AppUserResult: The users found
+        """
+        users = self.kc_admin.get_realm_role_members(role)
 
         # Fetch Roles for Each User
         app_users = []
