@@ -18,12 +18,12 @@ class AppUser(BaseModel):
     id: Optional[str] = None
     username: str
     email: str
-    email_verified: bool
+    email_verified: Optional[bool] = False
     first_name: Optional[str]
     last_name: Optional[str]
-    enabled: bool
+    enabled: Optional[bool] = False
     totp: Optional[bool] = False
-    roles: List[str]
+    roles: Optional[List[str]] = []
 
 
 class AppUserDraft(AppUser):
