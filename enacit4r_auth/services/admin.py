@@ -61,11 +61,13 @@ class KeycloakAdminService:
         user = self.kc_admin.get_user(user_id)
         return self._as_app_user(user)
 
-    async def create_user(self, user: AppUserDraft):
+    async def create_user(self, user: AppUserDraft, actions: List[str] = ["UPDATE_PASSWORD"]) -> AppUser:
         """Create a user with temporary password (required user action: update password)
 
         Args:
             user (AppUserDraft): The user details
+            actions (List[str], optional): The required actions for the user: UPDATE_PASSWORD, 
+            CONFIGURE_TOTP, VERIFY_EMAIL, UPDATE_PROFILE etc. Defaults to ["UPDATE_PASSWORD"].
 
         Returns:
             AppUser: The user created
@@ -78,7 +80,7 @@ class KeycloakAdminService:
             "lastName": user.last_name,
             "enabled": user.enabled,
             "credentials": [{"value": user.password, "type": "password"}],
-            "requiredActions": ["UPDATE_PASSWORD"]
+            "requiredActions": actions or ["UPDATE_PASSWORD"],
         }
         user_id = self.kc_admin.create_user(payload)
         if user.roles:
