@@ -155,6 +155,25 @@ class KeycloakAdminService:
         except:
             self.kc_admin.delete_user(id)
         return user
+    
+    def check_valid_password(self, password: str, min_length: int = 8) -> bool:
+        """Check a user password is valid: at least <min_length> characters, lower and upper case letters, at least one digit and a special char.
+
+        Args:
+            password (str): The password to check
+            min_length (int): The minimum length of the password. Defaults to 8.
+
+        Returns:
+            bool: True if the password is valid, False otherwise
+        """
+        if len(password) < min_length:
+            return False
+        has_lower = any(c.islower() for c in password)
+        has_upper = any(c.isupper() for c in password)
+        has_digit = any(c.isdigit() for c in password)
+        has_special = any(not c.isalnum() for c in password)
+        return has_lower and has_upper and has_digit and has_special
+        
 
     def _get_role(self, name: str):
         """Get role object by name
@@ -191,4 +210,3 @@ class KeycloakAdminService:
             enabled=user["enabled"],
             roles=realm_role_names
         )
-
