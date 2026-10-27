@@ -8,7 +8,8 @@ class KeycloakService:
     """A service to interact with keycloak for authentication and authorization.
     """
 
-    def __init__(self, url: str, realm: str, client_id: str, client_secret: str, admin_role: str):
+    def __init__(self, url: str, realm: str, client_id: str, client_secret: str, admin_role: str, client_roles: bool = False):
+        """client_roles: check the roles of this client (resource_access) instead of the realm roles."""
         # This is used for fastapi docs authentification
         self.oauth2_scheme = OAuth2AuthorizationCodeBearer(
             authorizationUrl=f"{url}",
@@ -33,6 +34,12 @@ class KeycloakService:
             verify=True,
         )
         self.admin_role = admin_role
+        self.client_id = client_id
+        self.client_roles = client_roles
+
+    def get_roles(self, user: User) -> list:
+        """Get the roles to check: client roles or realm roles"""
+        return user.client_roles if self.client_roles else user.realm_roles
 
     def get_payload(self, required: bool = True):
         """Get the payload/token from keycloak"""
@@ -68,7 +75,7 @@ class KeycloakService:
                     realm_roles=payload.get(
                         "realm_access", {}).get("roles", []),
                     client_roles=payload.get(
-                        "realm_access", {}).get("roles", []),
+                        "resource_access", {}).get(self.client_id, {}).get("roles", []),
                 ) if payload else None
             except Exception as e:
                 if required:
@@ -86,7 +93,7 @@ class KeycloakService:
         """Require that the user has a specific role to perform an operation
         """
         async def require_role_impl(user: User = Depends(self.get_user_info())) -> User:
-            if role not in user.realm_roles:
+            if role not in self.get_roles(user):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="You are not authorised to perform this operation",
@@ -100,7 +107,7 @@ class KeycloakService:
         """Require that the user has at least one of the roles to perform an operation
         """
         async def require_any_role_impl(user: User = Depends(self.get_user_info())) -> User:
-            if not any(role in user.realm_roles for role in roles):
+            if not any(role in self.get_roles(user) for role in roles):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="You are not authorised to perform this operation",
@@ -114,7 +121,7 @@ class KeycloakService:
         """Require that the user has the admin role to perform an operation
         """
         async def require_admin_impl(user: User = Depends(self.get_user_info())) -> User:
-            if self.admin_role not in user.realm_roles:
+            if self.admin_role not in self.get_roles(user):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="You are not authorised to perform this operation",

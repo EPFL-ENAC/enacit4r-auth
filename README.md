@@ -48,8 +48,11 @@ Prerequisites:
 * `realm-management` query-users	
 * `realm-management` view-users
 * `realm-management` view-realm	
+* `realm-management` view-clients (only with `client_roles=True`)
 
 2. The role by which the users will be assigned to the application must be created in Keycloak.
+
+With `client_roles=True` (in both `KeycloakService` and `KeycloakAdminService`), the application roles are the client roles of the client ID given as credentials, instead of realm roles. This is the option for a realm shared by several applications.
 
 ```python
 from enacit4r_auth.services.admin import KeycloakAdminService, AppUser
