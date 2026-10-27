@@ -1,3 +1,4 @@
+from functools import cached_property
 from typing import List
 from keycloak import KeycloakAdmin
 from enacit4r_auth.models.auth import AppUser, AppUserDraft
@@ -7,13 +8,17 @@ class KeycloakAdminService:
     """A service to interact with keycloak for managing users specific to an application.
     """
 
-    def __init__(self, url: str, realm: str, client_id: str, client_secret: str, app_user_role: str):
+    def __init__(self, url: str, realm: str, client_id: str, client_secret: str, app_user_role: str, client_roles: bool = False):
+        """client_roles: manage the roles of this client instead of the realm roles
+        (requires the realm-management view-clients role)."""
         self.kc_admin = KeycloakAdmin(server_url=url,
                                       client_id=client_id,
                                       client_secret_key=client_secret,
                                       realm_name=realm,
                                       verify=True)
         self.app_user_role = app_user_role
+        self.client_id = client_id
+        self.client_roles = client_roles
 
     async def get_users(self) -> List[AppUser]:
         """Get the users of the application
@@ -32,7 +37,7 @@ class KeycloakAdminService:
         Returns:
             AppUserResult: The users found
         """
-        users = self.kc_admin.get_realm_role_members(role)
+        users = self._get_role_members(role)
 
         # Fetch Roles for Each User
         app_users = []
@@ -90,7 +95,7 @@ class KeycloakAdminService:
         else:
             user.roles = [self.app_user_role]
         roles = [self._get_role(role) for role in user.roles]
-        self.kc_admin.assign_realm_roles(user_id, roles)
+        self._assign_roles(user_id, roles)
 
         return await self.get_user(user_id)
 
@@ -118,15 +123,16 @@ class KeycloakAdminService:
             # ensure app user role is always assigned
             if self.app_user_role not in user.roles:
                 user.roles.append(self.app_user_role)
-            current_roles = self.kc_admin.get_realm_roles_of_user(user.id)
+            current_roles = self._get_roles_of_user(user.id)
             # delete roles that are not in the new list
             roles_to_delete = [role for role in current_roles if role["name"] not in user.roles]
             if len(roles_to_delete) > 0:
-                self.kc_admin.delete_realm_roles_of_user(user.id, roles_to_delete)
+                self._delete_roles(user.id, roles_to_delete)
             # assign roles that are in the new list
             current_role_names = [role["name"] for role in current_roles]
             roles_to_add = [self._get_role(role) for role in user.roles if role not in current_role_names]
-            self.kc_admin.assign_realm_roles(user.id, roles_to_add)
+            if len(roles_to_add) > 0:
+                self._assign_roles(user.id, roles_to_add)
         return await self.get_user(user.id)
 
     async def update_user_password(self, id: str, password: str) -> None:
@@ -184,7 +190,36 @@ class KeycloakAdminService:
         Returns:
             dict: The Keycloak role object
         """
+        if self.client_roles:
+            return self.kc_admin.get_client_role(self._client_uuid, name)
         return self.kc_admin.get_realm_role(name)
+
+    @cached_property
+    def _client_uuid(self) -> str:
+        """Internal id of the client that holds the application roles"""
+        return self.kc_admin.get_client_id(self.client_id)
+
+    def _get_role_members(self, role: str) -> List[dict]:
+        if self.client_roles:
+            return self.kc_admin.get_client_role_members(self._client_uuid, role)
+        return self.kc_admin.get_realm_role_members(role)
+
+    def _get_roles_of_user(self, user_id: str) -> List[dict]:
+        if self.client_roles:
+            return self.kc_admin.get_client_roles_of_user(user_id, self._client_uuid)
+        return self.kc_admin.get_realm_roles_of_user(user_id)
+
+    def _assign_roles(self, user_id: str, roles: List[dict]):
+        if self.client_roles:
+            self.kc_admin.assign_client_role(user_id, self._client_uuid, roles)
+        else:
+            self.kc_admin.assign_realm_roles(user_id, roles)
+
+    def _delete_roles(self, user_id: str, roles: List[dict]):
+        if self.client_roles:
+            self.kc_admin.delete_client_roles_of_user(user_id, self._client_uuid, roles)
+        else:
+            self.kc_admin.delete_realm_roles_of_user(user_id, roles)
 
     def _as_app_user(self, user: dict) -> AppUser:
         """Make AppUser object from Keycloak user
@@ -195,10 +230,9 @@ class KeycloakAdminService:
         Returns:
             AppUser: The user
         """
-        # Get realm roles for the user
+        # Get application roles for the user
         user_id = user["id"]
-        realm_roles = self.kc_admin.get_realm_roles_of_user(user_id)
-        realm_role_names = [role["name"] for role in realm_roles]
+        role_names = [role["name"] for role in self._get_roles_of_user(user_id)]
         return AppUser(
             id=user["id"],
             username=user["username"],
@@ -208,5 +242,5 @@ class KeycloakAdminService:
             first_name=user["firstName"],
             last_name=user["lastName"],
             enabled=user["enabled"],
-            roles=realm_role_names
+            roles=role_names
         )
