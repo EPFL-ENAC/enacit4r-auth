@@ -10,7 +10,7 @@ A Python library for handling authentication/authorization in the EPFL ENAC IT i
 To include the authentication library in your project:
 
 ```shell
-poetry add git+https://github.com/EPFL-ENAC/enacit4r-auth#someref
+uv add git+https://github.com/EPFL-ENAC/enacit4r-auth#someref
 ```
 
 Note: `someref` should be replaced by the commit hash, tag or branch name you want to use.
