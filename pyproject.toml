@@ -1,6 +1,6 @@
 [project]
 name = "enacit4r-auth"
-version = "0.7.0"
+version = "0.8.0"
 description = "Python authz utils for EPFL ENAC IT4R developments"
 authors = [{ name = "ymarcon", email = "yannick.marcon@epfl.ch" }]
 license = "MIT"
